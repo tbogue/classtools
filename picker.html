@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab Tools — Class Picker</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050a0f;
+    --panel: #0a1520;
+    --panel2: #0d1e2e;
+    --accent: #00e5ff;
+    --accent2: #39ff14;
+    --accent3: #ff6b35;
+    --warn: #ffcc00;
+    --purple: #b06aff;
+    --text: #c8e6f0;
+    --dim: #4a7a8a;
+    --glow: 0 0 20px rgba(0,229,255,0.4);
+    --glow2: 0 0 20px rgba(57,255,20,0.4);
+    --border: 1px solid rgba(0,229,255,0.2);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    font-family: 'Exo 2', sans-serif;
+    color: var(--text);
+    width: 100vw; height: 100vh;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  canvas.bg-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+  header {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 28px;
+    background: linear-gradient(90deg, rgba(0,229,255,0.06), transparent, rgba(176,106,255,0.04));
+    border-bottom: 1px solid rgba(0,229,255,0.15);
+    flex-shrink: 0;
+  }
+  .lab-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.1rem; font-weight: 900; letter-spacing: 0.2em;
+    color: var(--accent);
+    text-shadow: var(--glow);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .clock-display {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.6rem; color: var(--accent2);
+    text-shadow: var(--glow2); letter-spacing: 0.1em;
+  }
+  nav { display: flex; gap: 10px; }
+  nav a {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem; letter-spacing: 0.15em;
+    padding: 6px 16px;
+    border: 1px solid rgba(0,229,255,0.3);
+    color: var(--dim); text-decoration: none;
+    border-radius: 3px; transition: all 0.2s;
+    background: rgba(0,229,255,0.04);
+  }
+  nav a.active, nav a:hover {
+    color: var(--accent); border-color: var(--accent);
+    background: rgba(0,229,255,0.1); box-shadow: var(--glow);
+  }
+
+  main {
+    position: relative; z-index: 10;
+    flex: 1; display: grid;
+    grid-template-columns: 260px 1fr 280px;
+    gap: 14px; padding: 14px;
+    min-height: 0; overflow: hidden;
+  }
+
+  .panel {
+    background: linear-gradient(135deg, var(--panel), var(--panel2));
+    border: var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    position: relative; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .panel::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+  .panel-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.58rem; letter-spacing: 0.25em;
+    color: var(--dim); text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  }
+  .panel-label::before {
+    content: ''; display: inline-block;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--purple);
+    box-shadow: 0 0 8px var(--purple);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ── CLASS MANAGER (left column) ── */
+  #class-panel { grid-column: 1; }
+
+  .class-tabs {
+    display: flex; gap: 4px; margin-bottom: 10px; flex-shrink: 0; flex-wrap: wrap;
+  }
+  .class-tab {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem; padding: 4px 10px;
+    border-radius: 3px; cursor: pointer;
+    border: 1px solid rgba(0,229,255,0.2);
+    color: var(--dim); background: rgba(0,0,0,0.3);
+    transition: all 0.15s; touch-action: manipulation;
+  }
+  .class-tab.active {
+    color: var(--accent); border-color: var(--accent);
+    background: rgba(0,229,255,0.1); box-shadow: var(--glow);
+  }
+  .add-class-row {
+    display: flex; gap: 6px; margin-bottom: 10px; flex-shrink: 0;
+  }
+  .class-name-input {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem; color: var(--text);
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(0,229,255,0.2);
+    border-radius: 3px; padding: 5px 8px; flex: 1;
+  }
+  .class-name-input:focus { outline: none; border-color: var(--accent); }
+  .icon-btn {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem; letter-spacing: 0.05em;
+    padding: 5px 10px;
+    background: rgba(0,229,255,0.08);
+    border: 1px solid rgba(0,229,255,0.3);
+    color: var(--accent); border-radius: 3px; cursor: pointer;
+    transition: all 0.15s; touch-action: manipulation; white-space: nowrap;
+  }
+  .icon-btn:hover { background: rgba(0,229,255,0.18); }
+
+  .student-add-row {
+    display: flex; gap: 6px; margin-bottom: 8px; flex-shrink: 0;
+  }
+  .student-input {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 0.8rem; color: var(--text);
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(176,106,255,0.3);
+    border-radius: 3px; padding: 6px 10px; flex: 1;
+  }
+  .student-input:focus { outline: none; border-color: var(--purple); }
+  .add-s-btn {
+    padding: 6px 10px;
+    background: rgba(176,106,255,0.1);
+    border: 1px solid var(--purple);
+    color: var(--purple); border-radius: 3px; cursor: pointer;
+    font-size: 1rem; transition: all 0.15s; touch-action: manipulation;
+  }
+  .add-s-btn:hover { background: rgba(176,106,255,0.22); }
+
+  .student-list {
+    flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;
+  }
+  .student-list::-webkit-scrollbar { width: 4px; }
+  .student-list::-webkit-scrollbar-track { background: transparent; }
+  .student-list::-webkit-scrollbar-thumb { background: rgba(0,229,255,0.2); border-radius: 2px; }
+
+  .student-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 8px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(176,106,255,0.15);
+    border-radius: 4px;
+    font-size: 0.82rem;
+    transition: all 0.15s;
+    touch-action: manipulation;
+  }
+  .student-item.removed {
+    opacity: 0.35;
+    border-color: rgba(255,107,53,0.3);
+    text-decoration: line-through;
+    color: var(--dim);
+  }
+  .student-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem; color: var(--dim); min-width: 18px;
+  }
+  .student-name { flex: 1; }
+  .del-s-btn {
+    font-size: 0.75rem; color: var(--dim);
+    cursor: pointer; padding: 2px 5px;
+    border-radius: 2px; transition: all 0.15s;
+    background: none; border: none;
+    touch-action: manipulation;
+  }
+  .del-s-btn:hover { color: var(--accent3); background: rgba(255,107,53,0.1); }
+
+  .class-stats {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem; color: var(--dim);
+    margin-top: 6px; flex-shrink: 0;
+    display: flex; justify-content: space-between;
+  }
+  .restore-btn {
+    background: none; border: none; color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem; cursor: pointer;
+    touch-action: manipulation;
+  }
+  .restore-btn:hover { text-decoration: underline; }
+
+  /* ── WHEEL CENTER ── */
+  #wheel-panel {
+    grid-column: 2;
+    align-items: center; justify-content: center; gap: 10px;
+  }
+  #wheel-panel .panel-label { align-self: flex-start; }
+
+  .wheel-wrapper {
+    position: relative;
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    min-height: 0;
+  }
+  #wheelCanvas {
+    max-width: 100%; max-height: 100%;
+    border-radius: 50%;
+    filter: drop-shadow(0 0 18px rgba(0,229,255,0.25));
+  }
+  .wheel-pointer {
+    position: absolute; top: -4px; left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 14px solid transparent;
+    border-right: 14px solid transparent;
+    border-top: 28px solid var(--accent3);
+    filter: drop-shadow(0 0 8px rgba(255,107,53,0.8));
+    z-index: 5;
+  }
+  .spin-btn {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.85rem; font-weight: 700; letter-spacing: 0.15em;
+    padding: 12px 36px;
+    background: linear-gradient(135deg, rgba(57,255,20,0.12), rgba(0,229,255,0.08));
+    border: 1px solid var(--accent2);
+    color: var(--accent2); border-radius: 6px; cursor: pointer;
+    transition: all 0.15s; touch-action: manipulation;
+    box-shadow: var(--glow2);
+    flex-shrink: 0;
+  }
+  .spin-btn:hover { background: linear-gradient(135deg, rgba(57,255,20,0.25), rgba(0,229,255,0.15)); }
+  .spin-btn:disabled {
+    opacity: 0.4; cursor: not-allowed;
+    border-color: var(--dim); color: var(--dim); box-shadow: none;
+  }
+  .spin-controls { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
+  .remove-toggle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem; color: var(--dim);
+    display: flex; align-items: center; gap: 6px; cursor: pointer;
+    touch-action: manipulation;
+  }
+  .remove-toggle input { accent-color: var(--accent3); }
+
+  /* Result flash */
+  #result-flash {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(135deg, rgba(0,229,255,0.12), rgba(57,255,20,0.08));
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 14px 20px;
+    text-align: center;
+    display: none;
+    animation: result-in 0.4s ease-out;
+    z-index: 5;
+  }
+  #result-flash.show { display: block; }
+  @keyframes result-in { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .result-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.4rem; font-weight: 900;
+    color: var(--accent2);
+    text-shadow: var(--glow2);
+  }
+  .result-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem; color: var(--dim); letter-spacing: 0.15em;
+    margin-bottom: 4px;
+  }
+
+  /* ── TEAMS PANEL ── */
+  #teams-panel { grid-column: 3; }
+  .teams-controls {
+    display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  .teams-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem; color: var(--dim); white-space: nowrap;
+  }
+  .size-input {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem; color: var(--text);
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(57,255,20,0.3);
+    border-radius: 3px; padding: 5px 8px; width: 52px; text-align: center;
+  }
+  .size-input:focus { outline: none; border-color: var(--accent2); }
+  .gen-btn {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem; letter-spacing: 0.1em;
+    padding: 7px 14px;
+    background: rgba(57,255,20,0.1);
+    border: 1px solid var(--accent2);
+    color: var(--accent2); border-radius: 4px; cursor: pointer;
+    transition: all 0.15s; touch-action: manipulation; white-space: nowrap;
+  }
+  .gen-btn:hover { background: rgba(57,255,20,0.22); box-shadow: var(--glow2); }
+
+  .teams-output {
+    flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;
+  }
+  .teams-output::-webkit-scrollbar { width: 4px; }
+  .teams-output::-webkit-scrollbar-thumb { background: rgba(57,255,20,0.2); border-radius: 2px; }
+
+  .team-card {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(57,255,20,0.2);
+    border-left: 3px solid;
+    border-radius: 5px;
+    padding: 8px 10px;
+    animation: slide-in 0.3s ease-out;
+  }
+  @keyframes slide-in { from{opacity:0;transform:translateX(15px)} to{opacity:1;transform:translateX(0)} }
+  .team-card-header {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem; letter-spacing: 0.1em;
+    margin-bottom: 6px;
+  }
+  .team-members { display: flex; flex-direction: column; gap: 3px; }
+  .team-member {
+    font-size: 0.8rem; color: var(--text);
+    padding: 2px 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.04);
+  }
+
+  .teams-empty {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 8px; opacity: 0.3;
+  }
+  .teams-empty .icon { font-size: 2rem; }
+  .teams-empty p {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem; color: var(--dim); letter-spacing: 0.1em;
+  }
+
+  /* No-students warning */
+  .no-students {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem; color: var(--dim); text-align: center; letter-spacing: 0.1em;
+    opacity: 0.5;
+  }
+</style>
+</head>
+<body>
+
+<canvas class="bg-canvas" id="bgCanvas"></canvas>
+
+<header>
+  <div class="lab-title">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 4v10l-6 10h20L18 14V4" stroke="#00e5ff" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M8 4h12" stroke="#00e5ff" stroke-width="1.5"/>
+      <circle cx="12" cy="19" r="1.5" fill="#39ff14"/>
+      <circle cx="16" cy="21" r="1" fill="#00e5ff"/>
+    </svg>
+    LAB CONTROL
+  </div>
+  <div class="clock-display" id="liveClock">00:00:00</div>
+  <nav>
+    <a href="index.html">⬡ MAIN LAB</a>
+    <a href="picker.html" class="active">⬡ CLASS TOOLS</a>
+  </nav>
+</header>
+
+<main>
+  <!-- CLASS MANAGER -->
+  <div class="panel" id="class-panel">
+    <div class="panel-label">CLASS ROSTER</div>
+
+    <div class="class-tabs" id="classTabs"></div>
+
+    <div class="add-class-row">
+      <input class="class-name-input" id="classNameInput" type="text" placeholder="New class name…" maxlength="20"
+        onkeydown="if(event.key==='Enter')addClass()">
+      <button class="icon-btn" onclick="addClass()">+ CLASS</button>
+    </div>
+
+    <div class="student-add-row">
+      <input class="student-input" id="studentInput" type="text" placeholder="Add student…" maxlength="40"
+        onkeydown="if(event.key==='Enter')addStudent()">
+      <button class="add-s-btn" onclick="addStudent()">+</button>
+    </div>
+
+    <div class="student-list" id="studentList"></div>
+
+    <div class="class-stats" id="classStats">
+      <span id="statsText"></span>
+      <button class="restore-btn" onclick="restoreRemoved()" id="restoreBtn" style="display:none">RESTORE REMOVED</button>
+    </div>
+  </div>
+
+  <!-- WHEEL -->
+  <div class="panel" id="wheel-panel">
+    <div class="panel-label">ELEMENT SELECTOR WHEEL</div>
+    <div class="wheel-wrapper">
+      <div class="wheel-pointer"></div>
+      <canvas id="wheelCanvas" width="380" height="380"></canvas>
+      <div id="result-flash">
+        <div class="result-label">SELECTED ELEMENT</div>
+        <div class="result-name" id="resultName">—</div>
+      </div>
+    </div>
+    <div class="spin-controls">
+      <button class="spin-btn" id="spinBtn" onclick="spinWheel()">⚡ SPIN</button>
+      <label class="remove-toggle">
+        <input type="checkbox" id="removeAfterSpin" checked>
+        Remove after spin
+      </label>
+    </div>
+  </div>
+
+  <!-- TEAMS -->
+  <div class="panel" id="teams-panel">
+    <div class="panel-label">COMPOUND TEAMS</div>
+    <div class="teams-controls">
+      <span class="teams-label">SIZE PER TEAM:</span>
+      <input class="size-input" type="number" id="teamSize" value="3" min="2" max="10">
+      <button class="gen-btn" onclick="generateTeams()">⚗ GENERATE</button>
+      <button class="gen-btn" onclick="clearTeams()" style="border-color:var(--accent3);color:var(--accent3);background:rgba(255,107,53,0.08)">CLEAR</button>
+    </div>
+    <div class="teams-output" id="teamsOutput">
+      <div class="teams-empty">
+        <div class="icon">⚗️</div>
+        <p>GENERATE TEAMS ABOVE</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ── CLOCK ──
+function updateClock() {
+  const n = new Date();
+  document.getElementById('liveClock').textContent =
+    String(n.getHours()).padStart(2,'0')+':'+
+    String(n.getMinutes()).padStart(2,'0')+':'+
+    String(n.getSeconds()).padStart(2,'0');
+}
+setInterval(updateClock, 1000); updateClock();
+
+// ── BG ──
+const bgC = document.getElementById('bgCanvas');
+const bgX = bgC.getContext('2d');
+function resizeBg() { bgC.width = window.innerWidth; bgC.height = window.innerHeight; }
+resizeBg(); window.addEventListener('resize', resizeBg);
+const bgnodes = Array.from({length:16},()=>({
+  x:Math.random()*bgC.width, y:Math.random()*bgC.height,
+  vx:(Math.random()-.5)*.35, vy:(Math.random()-.5)*.35, r:2+Math.random()*3
+}));
+function drawBg(){
+  bgX.clearRect(0,0,bgC.width,bgC.height);
+  for(let i=0;i<bgnodes.length;i++){
+    for(let j=i+1;j<bgnodes.length;j++){
+      const dx=bgnodes[i].x-bgnodes[j].x,dy=bgnodes[i].y-bgnodes[j].y,d=Math.sqrt(dx*dx+dy*dy);
+      if(d<150){bgX.beginPath();bgX.moveTo(bgnodes[i].x,bgnodes[i].y);bgX.lineTo(bgnodes[j].x,bgnodes[j].y);bgX.strokeStyle=`rgba(176,106,255,${0.07*(1-d/150)})`;bgX.lineWidth=1;bgX.stroke();}
+    }
+    const n=bgnodes[i];
+    bgX.beginPath();bgX.arc(n.x,n.y,n.r,0,Math.PI*2);
+    bgX.fillStyle='rgba(176,106,255,0.12)';bgX.fill();
+    bgX.strokeStyle='rgba(176,106,255,0.25)';bgX.lineWidth=1;bgX.stroke();
+    n.x+=n.vx;n.y+=n.vy;
+    if(n.x<0||n.x>bgC.width)n.vx*=-1;
+    if(n.y<0||n.y>bgC.height)n.vy*=-1;
+  }
+  requestAnimationFrame(drawBg);
+}
+drawBg();
+
+// ── DATA ──
+const STORAGE_KEY = 'lab_classes_v2';
+function loadData() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {classes:{},active:''}; }
+  catch { return {classes:{},active:''}; }
+}
+function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(appData)); }
+
+let appData = loadData();
+if (!appData.classes) appData.classes = {};
+if (!appData.active) appData.active = Object.keys(appData.classes)[0] || '';
+
+function getActive() { return appData.classes[appData.active] || null; }
+
+function activeStudents() {
+  const c = getActive(); if(!c) return [];
+  return c.students.filter(s => !s.removed);
+}
+
+// ── CLASS TABS ──
+function renderTabs() {
+  const t = document.getElementById('classTabs');
+  t.innerHTML = '';
+  Object.keys(appData.classes).forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'class-tab' + (name === appData.active ? ' active' : '');
+    btn.textContent = name;
+    btn.onclick = () => { appData.active = name; saveData(); renderAll(); };
+    // long-press to delete
+    let hold;
+    btn.addEventListener('touchstart', () => { hold = setTimeout(()=>deleteClass(name),800); });
+    btn.addEventListener('touchend', () => clearTimeout(hold));
+    btn.addEventListener('contextmenu', (e) => { e.preventDefault(); deleteClass(name); });
+    t.appendChild(btn);
+  });
+}
+
+function addClass() {
+  const inp = document.getElementById('classNameInput');
+  const name = inp.value.trim();
+  if (!name || appData.classes[name]) return;
+  appData.classes[name] = { students: [] };
+  appData.active = name;
+  inp.value = '';
+  saveData(); renderAll();
+}
+
+function deleteClass(name) {
+  if (!confirm(`Delete class "${name}"?`)) return;
+  delete appData.classes[name];
+  appData.active = Object.keys(appData.classes)[0] || '';
+  saveData(); renderAll();
+}
+
+// ── STUDENTS ──
+function addStudent() {
+  const inp = document.getElementById('studentInput');
+  const name = inp.value.trim();
+  if (!name) return;
+  const c = getActive(); if(!c) return alert('Create a class first!');
+  c.students.push({ name, removed: false, id: Date.now() });
+  inp.value = '';
+  saveData(); renderStudents(); renderWheel();
+}
+
+function removeStudent(id) {
+  const c = getActive(); if(!c) return;
+  const s = c.students.find(x=>x.id===id);
+  if(s) { s.removed = !s.removed; saveData(); renderStudents(); renderWheel(); }
+}
+
+function deleteStudent(id) {
+  const c = getActive(); if(!c) return;
+  c.students = c.students.filter(x=>x.id!==id);
+  saveData(); renderStudents(); renderWheel();
+}
+
+function restoreRemoved() {
+  const c = getActive(); if(!c) return;
+  c.students.forEach(s=>s.removed=false);
+  saveData(); renderStudents(); renderWheel();
+}
+
+function renderStudents() {
+  const c = getActive();
+  const list = document.getElementById('studentList');
+  if (!c) { list.innerHTML = '<div class="no-students">NO CLASS SELECTED</div>'; return; }
+  if (c.students.length === 0) {
+    list.innerHTML = '<div class="no-students">ADD STUDENTS ABOVE</div>'; 
+    document.getElementById('statsText').textContent = '';
+    document.getElementById('restoreBtn').style.display = 'none';
+    return;
+  }
+  list.innerHTML = '';
+  c.students.forEach((s, i) => {
+    const div = document.createElement('div');
+    div.className = 'student-item' + (s.removed ? ' removed' : '');
+    div.innerHTML = `
+      <span class="student-num">${i+1}</span>
+      <span class="student-name">${s.name}</span>
+      <button class="del-s-btn" onclick="removeStudent(${s.id})" title="${s.removed?'Restore':'Remove from wheel'}">
+        ${s.removed ? '↩' : '⊘'}
+      </button>
+      <button class="del-s-btn" onclick="deleteStudent(${s.id})" title="Delete permanently">✕</button>
+    `;
+    list.appendChild(div);
+  });
+  const active = c.students.filter(s=>!s.removed).length;
+  const removed = c.students.filter(s=>s.removed).length;
+  document.getElementById('statsText').textContent = `${active} active · ${removed} removed`;
+  document.getElementById('restoreBtn').style.display = removed > 0 ? 'block' : 'none';
+}
+
+// ── WHEEL ──
+const wheelCanvas = document.getElementById('wheelCanvas');
+const wctx = wheelCanvas.getContext('2d');
+let wheelAngle = 0;
+let spinning = false;
+
+const WHEEL_COLORS = [
+  ['#00e5ff','#007a8a'],['#39ff14','#1a7a00'],['#b06aff','#5c2a8a'],
+  ['#ff6b35','#8a3200'],['#ffcc00','#8a6a00'],['#00ff88','#008a44'],
+  ['#ff4488','#8a1a44'],['#44aaff','#1a5a8a'],['#ffaa00','#8a5500'],
+  ['#88ff44','#3a8a00'],['#ff88cc','#8a3a66'],['#00ccff','#006a8a'],
+];
+
+function drawWheel() {
+  const students = activeStudents();
+  const W = wheelCanvas.width, H = wheelCanvas.height;
+  const cx = W/2, cy = H/2, r = Math.min(W,H)/2 - 8;
+  wctx.clearRect(0,0,W,H);
+
+  if (students.length === 0) {
+    // empty state
+    wctx.beginPath();
+    wctx.arc(cx,cy,r,0,Math.PI*2);
+    wctx.fillStyle = '#0a1520';
+    wctx.fill();
+    wctx.strokeStyle = 'rgba(0,229,255,0.2)';
+    wctx.lineWidth = 2; wctx.stroke();
+    wctx.fillStyle = 'rgba(0,229,255,0.3)';
+    wctx.font = '14px Share Tech Mono';
+    wctx.textAlign = 'center';
+    wctx.fillText('NO STUDENTS', cx, cy);
+    return;
+  }
+
+  const n = students.length;
+  const arc = (Math.PI * 2) / n;
+
+  students.forEach((s, i) => {
+    const startAngle = wheelAngle + i * arc;
+    const endAngle = startAngle + arc;
+    const [light, dark] = WHEEL_COLORS[i % WHEEL_COLORS.length];
+
+    // gradient slice
+    const grad = wctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    grad.addColorStop(0, dark + 'aa');
+    grad.addColorStop(1, light + '55');
+
+    wctx.beginPath();
+    wctx.moveTo(cx, cy);
+    wctx.arc(cx, cy, r, startAngle, endAngle);
+    wctx.closePath();
+    wctx.fillStyle = grad;
+    wctx.fill();
+    wctx.strokeStyle = '#050a0f';
+    wctx.lineWidth = 2; wctx.stroke();
+
+    // text
+    const midAngle = startAngle + arc / 2;
+    const textR = r * 0.65;
+    const tx = cx + Math.cos(midAngle) * textR;
+    const ty = cy + Math.sin(midAngle) * textR;
+
+    wctx.save();
+    wctx.translate(tx, ty);
+    wctx.rotate(midAngle + Math.PI / 2);
+    wctx.fillStyle = '#ffffff';
+    const fs = Math.max(8, Math.min(13, 220/n));
+    wctx.font = `600 ${fs}px Exo 2, sans-serif`;
+    wctx.textAlign = 'center';
+    wctx.textBaseline = 'middle';
+    // truncate
+    let label = s.name;
+    wctx.fillText(label.length > 10 ? label.slice(0,9)+'…' : label, 0, 0);
+    wctx.restore();
+  });
+
+  // center circle
+  wctx.beginPath();
+  wctx.arc(cx, cy, 22, 0, Math.PI*2);
+  wctx.fillStyle = '#050a0f';
+  wctx.fill();
+  wctx.strokeStyle = 'rgba(0,229,255,0.5)';
+  wctx.lineWidth = 2; wctx.stroke();
+
+  // center icon
+  wctx.fillStyle = 'rgba(0,229,255,0.7)';
+  wctx.font = '13px serif';
+  wctx.textAlign = 'center';
+  wctx.textBaseline = 'middle';
+  wctx.fillText('⚗', cx, cy);
+}
+
+function getWinnerFromAngle() {
+  const students = activeStudents();
+  const n = students.length;
+  if (n === 0) return null;
+  const arc = (Math.PI * 2) / n;
+  // pointer is at top (π*1.5 = -π/2), find which slice is there
+  let angle = (-(wheelAngle - Math.PI * 1.5)) % (Math.PI * 2);
+  if (angle < 0) angle += Math.PI * 2;
+  const idx = Math.floor(angle / arc) % n;
+  return students[idx];
+}
+
+function spinWheel() {
+  const students = activeStudents();
+  if (students.length < 2) return;
+  spinning = true;
+  document.getElementById('spinBtn').disabled = true;
+  document.getElementById('result-flash').classList.remove('show');
+
+  const extraSpins = 5 + Math.random() * 5;
+  const extraAngle = Math.PI * 2 * extraSpins;
+  const duration = 3500 + Math.random() * 1500;
+  const start = performance.now();
+  const startAngle = wheelAngle;
+  const targetAngle = startAngle + extraAngle;
+
+  function animate(now) {
+    const elapsed = now - start;
+    const t = Math.min(elapsed / duration, 1);
+    // ease out cubic
+    const ease = 1 - Math.pow(1 - t, 3);
+    wheelAngle = startAngle + (targetAngle - startAngle) * ease;
+    drawWheel();
+    if (t < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      spinning = false;
+      document.getElementById('spinBtn').disabled = false;
+      const winner = getWinnerFromAngle();
+      if (winner) {
+        document.getElementById('resultName').textContent = winner.name;
+        document.getElementById('result-flash').classList.add('show');
+        if (document.getElementById('removeAfterSpin').checked) {
+          const c = getActive();
+          const s = c.students.find(x=>x.name===winner.name&&!x.removed);
+          if(s){ s.removed=true; saveData(); renderStudents(); }
+        }
+        setTimeout(()=>document.getElementById('result-flash').classList.remove('show'), 4000);
+      }
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+// ── TEAMS ──
+function generateTeams() {
+  const students = activeStudents();
+  if (students.length < 2) { alert('Need at least 2 students!'); return; }
+  const size = parseInt(document.getElementById('teamSize').value) || 3;
+  const shuffled = [...students].sort(() => Math.random() - 0.5);
+  const teams = [];
+  for (let i = 0; i < shuffled.length; i += size) {
+    teams.push(shuffled.slice(i, i + size));
+  }
+  const teamColors = ['#00e5ff','#39ff14','#b06aff','#ff6b35','#ffcc00','#00ff88','#ff4488','#44aaff'];
+  const elements = ['Hydrogen','Helium','Lithium','Beryllium','Boron','Carbon','Nitrogen','Oxygen','Fluorine','Neon'];
+  const out = document.getElementById('teamsOutput');
+  out.innerHTML = '';
+  teams.forEach((team, i) => {
+    const color = teamColors[i % teamColors.length];
+    const el = elements[i] || `Group ${i+1}`;
+    const div = document.createElement('div');
+    div.className = 'team-card';
+    div.style.borderLeftColor = color;
+    div.style.animationDelay = (i * 0.07) + 's';
+    div.innerHTML = `
+      <div class="team-card-header" style="color:${color}">⚗ ${el.toUpperCase()} TEAM</div>
+      <div class="team-members">
+        ${team.map(s=>`<div class="team-member">· ${s.name}</div>`).join('')}
+      </div>
+    `;
+    out.appendChild(div);
+  });
+}
+
+function clearTeams() {
+  document.getElementById('teamsOutput').innerHTML = `
+    <div class="teams-empty"><div class="icon">⚗️</div><p>GENERATE TEAMS ABOVE</p></div>
+  `;
+}
+
+// ── RENDER ALL ──
+function renderAll() {
+  renderTabs();
+  renderStudents();
+  drawWheel();
+}
+
+renderAll();
+
+// Resize wheel canvas responsively
+function resizeWheel() {
+  const wp = document.getElementById('wheel-panel');
+  const wrapper = wp.querySelector('.wheel-wrapper');
+  const size = Math.min(wrapper.clientWidth, wrapper.clientHeight) - 10;
+  if (size > 100) {
+    wheelCanvas.width = size;
+    wheelCanvas.height = size;
+    drawWheel();
+  }
+}
+window.addEventListener('resize', resizeWheel);
+setTimeout(resizeWheel, 100);
+</script>
+</body>
+</html>

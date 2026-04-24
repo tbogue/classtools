@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab Control — Classroom Display</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050a0f;
+    --panel: #0a1520;
+    --panel2: #0d1e2e;
+    --accent: #00e5ff;
+    --accent2: #39ff14;
+    --accent3: #ff6b35;
+    --warn: #ffcc00;
+    --text: #c8e6f0;
+    --dim: #4a7a8a;
+    --glow: 0 0 20px rgba(0,229,255,0.4);
+    --glow2: 0 0 20px rgba(57,255,20,0.4);
+    --border: 1px solid rgba(0,229,255,0.2);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    font-family: 'Exo 2', sans-serif;
+    color: var(--text);
+    width: 100vw; height: 100vh;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+
+  /* Animated background */
+  .bg-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+  /* Header */
+  header {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 28px;
+    background: linear-gradient(90deg, rgba(0,229,255,0.06), transparent, rgba(57,255,20,0.04));
+    border-bottom: 1px solid rgba(0,229,255,0.15);
+  }
+  .lab-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.1rem; font-weight: 900; letter-spacing: 0.2em;
+    color: var(--accent);
+    text-shadow: var(--glow);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .lab-title svg { width: 28px; height: 28px; }
+  .clock-display {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.6rem; color: var(--accent2);
+    text-shadow: var(--glow2);
+    letter-spacing: 0.1em;
+  }
+  nav {
+    display: flex; gap: 10px;
+  }
+  nav a {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem; letter-spacing: 0.15em;
+    padding: 6px 16px;
+    border: 1px solid rgba(0,229,255,0.3);
+    color: var(--dim);
+    text-decoration: none;
+    border-radius: 3px;
+    transition: all 0.2s;
+    background: rgba(0,229,255,0.04);
+  }
+  nav a.active, nav a:hover {
+    color: var(--accent); border-color: var(--accent);
+    background: rgba(0,229,255,0.1);
+    box-shadow: var(--glow);
+  }
+
+  /* Main layout */
+  main {
+    position: relative; z-index: 10;
+    flex: 1; display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+    gap: 18px; padding: 18px;
+    min-height: 0;
+  }
+
+  .panel {
+    background: linear-gradient(135deg, var(--panel), var(--panel2));
+    border: var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .panel::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+  .panel-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem; letter-spacing: 0.25em;
+    color: var(--dim); text-transform: uppercase;
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .panel-label::before {
+    content: ''; display: inline-block;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+
+  /* ── TIMER PANEL ── */
+  #timer-panel { grid-column: 1; }
+
+  .timer-presets {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px;
+  }
+  .preset-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    padding: 6px 12px;
+    background: rgba(0,229,255,0.06);
+    border: 1px solid rgba(0,229,255,0.25);
+    color: var(--accent); border-radius: 4px;
+    cursor: pointer; transition: all 0.15s;
+    touch-action: manipulation;
+  }
+  .preset-btn:hover, .preset-btn:active {
+    background: rgba(0,229,255,0.18); box-shadow: var(--glow);
+  }
+
+  .custom-time-row {
+    display: flex; gap: 8px; align-items: center; margin-bottom: 16px;
+  }
+  .time-input {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem; color: var(--text);
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(0,229,255,0.2);
+    border-radius: 4px; padding: 6px 10px; width: 60px;
+    text-align: center;
+  }
+  .time-input:focus { outline: none; border-color: var(--accent); }
+  .time-sep { color: var(--dim); font-family: 'Share Tech Mono', monospace; }
+
+  .set-btn {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem; letter-spacing: 0.1em;
+    padding: 7px 14px;
+    background: rgba(0,229,255,0.1);
+    border: 1px solid var(--accent);
+    color: var(--accent); border-radius: 4px; cursor: pointer;
+    transition: all 0.15s; touch-action: manipulation;
+  }
+  .set-btn:hover { background: rgba(0,229,255,0.2); box-shadow: var(--glow); }
+
+  /* Big timer readout */
+  .timer-readout {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(3rem, 7vw, 6rem);
+    font-weight: 900;
+    text-align: center;
+    color: var(--accent2);
+    text-shadow: 0 0 30px rgba(57,255,20,0.6), 0 0 60px rgba(57,255,20,0.2);
+    letter-spacing: 0.05em;
+    line-height: 1;
+    margin: 10px 0;
+    transition: color 0.4s, text-shadow 0.4s;
+  }
+  .timer-readout.warning {
+    color: var(--warn);
+    text-shadow: 0 0 30px rgba(255,204,0,0.8);
+    animation: flash-warn 0.8s infinite alternate;
+  }
+  .timer-readout.danger {
+    color: var(--accent3);
+    text-shadow: 0 0 30px rgba(255,107,53,0.8);
+    animation: flash-warn 0.4s infinite alternate;
+  }
+  @keyframes flash-warn { from{opacity:1} to{opacity:0.6} }
+
+  /* Progress bar */
+  .progress-track {
+    width: 100%; height: 22px;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(0,229,255,0.2);
+    border-radius: 11px; overflow: hidden;
+    position: relative; margin: 10px 0;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00e5ff, #39ff14);
+    border-radius: 11px;
+    transition: width 0.5s linear, background 0.5s;
+    position: relative;
+  }
+  .progress-fill::after {
+    content: '';
+    position: absolute; right: 0; top: 0; bottom: 0; width: 20px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 0 11px 11px 0;
+    filter: blur(4px);
+  }
+  .progress-fill.warning { background: linear-gradient(90deg, var(--warn), #ff9900); }
+  .progress-fill.danger { background: linear-gradient(90deg, #ff4400, var(--accent3)); }
+
+  /* Segment markers */
+  .segment-dots {
+    display: flex; justify-content: space-between;
+    padding: 0 2px; margin-bottom: 4px;
+  }
+  .seg-dot {
+    width: 3px; height: 8px;
+    background: rgba(0,229,255,0.3); border-radius: 2px;
+  }
+
+  .timer-controls {
+    display: flex; gap: 10px; margin-top: 12px; justify-content: center;
+  }
+  .ctrl-btn {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem; letter-spacing: 0.1em;
+    padding: 10px 24px;
+    border-radius: 5px; cursor: pointer;
+    transition: all 0.15s; touch-action: manipulation;
+    min-width: 90px;
+  }
+  .ctrl-btn.start {
+    background: rgba(57,255,20,0.12);
+    border: 1px solid var(--accent2);
+    color: var(--accent2);
+  }
+  .ctrl-btn.start:hover { background: rgba(57,255,20,0.25); box-shadow: var(--glow2); }
+  .ctrl-btn.pause {
+    background: rgba(255,204,0,0.1);
+    border: 1px solid var(--warn);
+    color: var(--warn);
+  }
+  .ctrl-btn.pause:hover { background: rgba(255,204,0,0.2); }
+  .ctrl-btn.reset {
+    background: rgba(255,107,53,0.1);
+    border: 1px solid var(--accent3);
+    color: var(--accent3);
+  }
+  .ctrl-btn.reset:hover { background: rgba(255,107,53,0.2); }
+
+  /* Label input */
+  .task-label-row {
+    display: flex; gap: 8px; align-items: center; margin-bottom: 10px;
+  }
+  .task-label {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 0.85rem; color: var(--text);
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(0,229,255,0.15);
+    border-radius: 4px; padding: 6px 12px; flex: 1;
+  }
+  .task-label:focus { outline: none; border-color: var(--accent); }
+  .task-label-display {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 1rem; font-weight: 600;
+    color: var(--text); text-align: center;
+    opacity: 0.8; min-height: 1.4em;
+    margin-bottom: 4px;
+  }
+
+  /* ── ANNOUNCEMENTS PANEL ── */
+  #announce-panel { grid-column: 2; }
+
+  .announce-input-row {
+    display: flex; gap: 8px; margin-bottom: 14px;
+  }
+  .announce-input {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 0.85rem; color: var(--text);
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(0,229,255,0.2);
+    border-radius: 4px; padding: 8px 14px; flex: 1;
+  }
+  .announce-input:focus { outline: none; border-color: var(--accent); }
+  .add-announce-btn {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem; letter-spacing: 0.1em;
+    padding: 8px 16px;
+    background: rgba(0,229,255,0.1);
+    border: 1px solid var(--accent);
+    color: var(--accent); border-radius: 4px; cursor: pointer;
+    transition: all 0.15s; touch-action: manipulation; white-space: nowrap;
+  }
+  .add-announce-btn:hover { background: rgba(0,229,255,0.22); box-shadow: var(--glow); }
+
+  .announcements-list {
+    flex: 1; display: flex; flex-direction: column; gap: 10px;
+    overflow: hidden;
+  }
+  .announcement {
+    background: linear-gradient(135deg, rgba(0,229,255,0.07), rgba(57,255,20,0.04));
+    border: 1px solid rgba(0,229,255,0.25);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    padding: 12px 16px;
+    display: flex; align-items: flex-start; gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    animation: slide-in 0.35s ease-out;
+    touch-action: manipulation;
+    position: relative; overflow: hidden;
+  }
+  .announcement::before {
+    content: ''; position: absolute;
+    inset: 0; background: rgba(255,50,50,0.08);
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .announcement:hover::before { opacity: 1; }
+  .announcement:hover { border-color: rgba(255,100,100,0.5); }
+  @keyframes slide-in {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .announce-icon { font-size: 1.2rem; flex-shrink: 0; }
+  .announce-text {
+    font-size: 0.95rem; line-height: 1.4; flex: 1;
+    color: var(--text);
+  }
+  .dismiss-hint {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem; color: var(--dim);
+    opacity: 0; transition: opacity 0.2s;
+    white-space: nowrap; align-self: center;
+  }
+  .announcement:hover .dismiss-hint { opacity: 1; }
+
+  .empty-state {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 8px;
+    opacity: 0.3;
+  }
+  .empty-state .flask { font-size: 2.5rem; }
+  .empty-state p {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem; letter-spacing: 0.1em; color: var(--dim);
+  }
+
+  /* Bubbles animation */
+  @keyframes bubble-rise {
+    0% { transform: translateY(0) scale(1); opacity: 0.6; }
+    100% { transform: translateY(-100vh) scale(1.5); opacity: 0; }
+  }
+  .bubble {
+    position: fixed; border-radius: 50%;
+    border: 1px solid rgba(0,229,255,0.3);
+    animation: bubble-rise linear infinite;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* Done overlay */
+  #done-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.85);
+    display: none; align-items: center; justify-content: center;
+    flex-direction: column; gap: 20px;
+    cursor: pointer;
+  }
+  #done-overlay.show { display: flex; animation: overlay-in 0.3s ease-out; }
+  @keyframes overlay-in { from{opacity:0;transform:scale(0.9)} to{opacity:1;transform:scale(1)} }
+  .done-text {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(2.5rem,8vw,5rem);
+    font-weight: 900;
+    color: var(--accent2);
+    text-shadow: 0 0 40px rgba(57,255,20,0.8), 0 0 80px rgba(57,255,20,0.4);
+    animation: done-pulse 0.6s infinite alternate;
+  }
+  @keyframes done-pulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.04); }
+  }
+  .done-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.9rem; color: var(--dim); letter-spacing: 0.2em;
+  }
+
+  /* Molecule SVG corner deco */
+  .mol-deco {
+    position: absolute; opacity: 0.05; pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<canvas class="bg-canvas" id="bgCanvas"></canvas>
+
+<header>
+  <div class="lab-title">
+    <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 4v10l-6 10h20L18 14V4" stroke="#00e5ff" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M8 4h12" stroke="#00e5ff" stroke-width="1.5"/>
+      <circle cx="12" cy="19" r="1.5" fill="#39ff14"/>
+      <circle cx="16" cy="21" r="1" fill="#00e5ff"/>
+    </svg>
+    LAB CONTROL
+  </div>
+  <div class="clock-display" id="liveClock">00:00:00</div>
+  <nav>
+    <a href="index.html" class="active">⬡ MAIN LAB</a>
+    <a href="picker.html">⬡ CLASS TOOLS</a>
+  </nav>
+</header>
+
+<main>
+  <!-- TIMER PANEL -->
+  <div class="panel" id="timer-panel">
+    <div class="panel-label">REACTION TIMER</div>
+
+    <div class="task-label-row">
+      <input class="task-label" id="taskInput" type="text" placeholder="Task / experiment label…" maxlength="60">
+    </div>
+    <div class="task-label-display" id="taskDisplay">—</div>
+
+    <div class="timer-presets">
+      <button class="preset-btn" onclick="setPreset(1)">1 MIN</button>
+      <button class="preset-btn" onclick="setPreset(2)">2 MIN</button>
+      <button class="preset-btn" onclick="setPreset(3)">3 MIN</button>
+      <button class="preset-btn" onclick="setPreset(5)">5 MIN</button>
+      <button class="preset-btn" onclick="setPreset(10)">10 MIN</button>
+      <button class="preset-btn" onclick="setPreset(15)">15 MIN</button>
+      <button class="preset-btn" onclick="setPreset(20)">20 MIN</button>
+    </div>
+
+    <div class="custom-time-row">
+      <input class="time-input" id="customMin" type="number" min="0" max="99" value="5" placeholder="MM">
+      <span class="time-sep">:</span>
+      <input class="time-input" id="customSec" type="number" min="0" max="59" value="0" placeholder="SS">
+      <button class="set-btn" onclick="setCustomTime()">SET</button>
+    </div>
+
+    <div class="segment-dots" id="segDots"></div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill" style="width:100%"></div>
+    </div>
+
+    <div class="timer-readout" id="timerReadout">05:00</div>
+
+    <div class="timer-controls">
+      <button class="ctrl-btn start" id="startPauseBtn" onclick="startPause()">START</button>
+      <button class="ctrl-btn reset" onclick="resetTimer()">RESET</button>
+    </div>
+  </div>
+
+  <!-- ANNOUNCEMENTS PANEL -->
+  <div class="panel" id="announce-panel">
+    <div class="panel-label">BULLETIN BOARD</div>
+
+    <div class="announce-input-row">
+      <input class="announce-input" id="announceInput" type="text" placeholder="Enter announcement…" maxlength="120"
+        onkeydown="if(event.key==='Enter') addAnnouncement()">
+      <button class="add-announce-btn" onclick="addAnnouncement()">+ POST</button>
+    </div>
+
+    <div class="announcements-list" id="announcementsList"></div>
+  </div>
+</main>
+
+<!-- Done overlay -->
+<div id="done-overlay" onclick="document.getElementById('done-overlay').classList.remove('show')">
+  <div class="done-text">TIME'S UP!</div>
+  <div class="done-sub">TAP ANYWHERE TO DISMISS</div>
+</div>
+
+<script>
+// ── LIVE CLOCK ──
+function updateClock() {
+  const now = new Date();
+  document.getElementById('liveClock').textContent =
+    String(now.getHours()).padStart(2,'0') + ':' +
+    String(now.getMinutes()).padStart(2,'0') + ':' +
+    String(now.getSeconds()).padStart(2,'0');
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── BACKGROUND CANVAS ──
+const canvas = document.getElementById('bgCanvas');
+const ctx = canvas.getContext('2d');
+function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+const nodes = Array.from({length: 18}, () => ({
+  x: Math.random() * canvas.width,
+  y: Math.random() * canvas.height,
+  vx: (Math.random()-0.5)*0.4,
+  vy: (Math.random()-0.5)*0.4,
+  r: 3 + Math.random()*3
+}));
+
+function drawBg() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // connect nearby nodes
+  for (let i=0;i<nodes.length;i++) {
+    for (let j=i+1;j<nodes.length;j++) {
+      const dx=nodes[i].x-nodes[j].x, dy=nodes[i].y-nodes[j].y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if (d<160) {
+        ctx.beginPath();
+        ctx.moveTo(nodes[i].x,nodes[i].y);
+        ctx.lineTo(nodes[j].x,nodes[j].y);
+        ctx.strokeStyle = `rgba(0,229,255,${0.07*(1-d/160)})`;
+        ctx.lineWidth=1;
+        ctx.stroke();
+      }
+    }
+    const n=nodes[i];
+    ctx.beginPath();
+    ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,229,255,0.15)';
+    ctx.fill();
+    ctx.strokeStyle='rgba(0,229,255,0.3)';
+    ctx.lineWidth=1; ctx.stroke();
+    n.x+=n.vx; n.y+=n.vy;
+    if(n.x<0||n.x>canvas.width) n.vx*=-1;
+    if(n.y<0||n.y>canvas.height) n.vy*=-1;
+  }
+  requestAnimationFrame(drawBg);
+}
+drawBg();
+
+// ── TIMER ──
+let totalSeconds = 300;
+let remaining = 300;
+let timerRunning = false;
+let timerInterval = null;
+
+function buildSegDots() {
+  const d = document.getElementById('segDots');
+  d.innerHTML = '';
+  const count = 20;
+  for (let i=0;i<count;i++) {
+    const s = document.createElement('div');
+    s.className='seg-dot'; d.appendChild(s);
+  }
+}
+buildSegDots();
+
+function setPreset(mins) {
+  resetTimer();
+  totalSeconds = mins * 60;
+  remaining = totalSeconds;
+  updateDisplay();
+}
+
+function setCustomTime() {
+  const m = parseInt(document.getElementById('customMin').value)||0;
+  const s = parseInt(document.getElementById('customSec').value)||0;
+  resetTimer();
+  totalSeconds = m*60+s;
+  remaining = totalSeconds;
+  updateDisplay();
+}
+
+function formatTime(s) {
+  const m = Math.floor(s/60);
+  const sec = s%60;
+  return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+}
+
+function updateDisplay() {
+  const pct = totalSeconds > 0 ? remaining/totalSeconds : 0;
+  const rd = document.getElementById('timerReadout');
+  const pf = document.getElementById('progressFill');
+
+  rd.textContent = formatTime(remaining);
+  pf.style.width = (pct*100)+'%';
+
+  rd.className = 'timer-readout';
+  pf.className = 'progress-fill';
+
+  if (pct <= 0.1) {
+    rd.classList.add('danger'); pf.classList.add('danger');
+  } else if (pct <= 0.25) {
+    rd.classList.add('warning'); pf.classList.add('warning');
+  }
+
+  // update label
+  const lbl = document.getElementById('taskInput').value.trim();
+  document.getElementById('taskDisplay').textContent = lbl || '—';
+}
+
+function startPause() {
+  if (!timerRunning) {
+    if (remaining === 0) { remaining = totalSeconds; }
+    timerRunning = true;
+    document.getElementById('startPauseBtn').textContent = 'PAUSE';
+    document.getElementById('startPauseBtn').className = 'ctrl-btn pause';
+    timerInterval = setInterval(() => {
+      if (remaining > 0) {
+        remaining--;
+        updateDisplay();
+      } else {
+        clearInterval(timerInterval);
+        timerRunning = false;
+        document.getElementById('done-overlay').classList.add('show');
+        document.getElementById('startPauseBtn').textContent = 'START';
+        document.getElementById('startPauseBtn').className = 'ctrl-btn start';
+      }
+    }, 1000);
+  } else {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    document.getElementById('startPauseBtn').textContent = 'RESUME';
+    document.getElementById('startPauseBtn').className = 'ctrl-btn start';
+  }
+}
+
+function resetTimer() {
+  clearInterval(timerInterval);
+  timerRunning = false;
+  remaining = totalSeconds;
+  document.getElementById('startPauseBtn').textContent = 'START';
+  document.getElementById('startPauseBtn').className = 'ctrl-btn start';
+  updateDisplay();
+}
+updateDisplay();
+
+// ── ANNOUNCEMENTS ──
+const ICONS = ['🧪','⚗️','🔬','🧬','⚡','🌡️','🔭','💡','📋','🧲'];
+let announcements = JSON.parse(localStorage.getItem('lab_announcements')||'[]');
+
+function saveAnnouncements() {
+  localStorage.setItem('lab_announcements', JSON.stringify(announcements));
+}
+
+function renderAnnouncements() {
+  const list = document.getElementById('announcementsList');
+  list.innerHTML = '';
+  if (announcements.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="flask">⚗️</div><p>NO ACTIVE ANNOUNCEMENTS</p><p>ADD ONE ABOVE</p></div>`;
+    return;
+  }
+  announcements.forEach((a, i) => {
+    const div = document.createElement('div');
+    div.className = 'announcement';
+    div.innerHTML = `
+      <span class="announce-icon">${a.icon}</span>
+      <span class="announce-text">${a.text}</span>
+      <span class="dismiss-hint">TAP TO DISMISS ✕</span>
+    `;
+    div.addEventListener('click', () => {
+      div.style.transition = 'all 0.3s';
+      div.style.opacity = '0';
+      div.style.transform = 'translateX(30px)';
+      setTimeout(() => {
+        announcements.splice(i, 1);
+        saveAnnouncements();
+        renderAnnouncements();
+      }, 300);
+    });
+    list.appendChild(div);
+  });
+}
+
+function addAnnouncement() {
+  const inp = document.getElementById('announceInput');
+  const text = inp.value.trim();
+  if (!text) return;
+  announcements.unshift({
+    text,
+    icon: ICONS[Math.floor(Math.random()*ICONS.length)],
+    id: Date.now()
+  });
+  saveAnnouncements();
+  renderAnnouncements();
+  inp.value = '';
+}
+
+renderAnnouncements();
+</script>
+</body>
+</html>
