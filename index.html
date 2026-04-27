@@ -250,18 +250,7 @@
   }
   .ctrl-btn.reset:hover { background: rgba(255,107,53,0.2); }
 
-  /* Label input */
-  .task-label-row {
-    display: flex; gap: 8px; align-items: center; margin-bottom: 10px;
-  }
-  .task-label {
-    font-family: 'Exo 2', sans-serif;
-    font-size: 0.85rem; color: var(--text);
-    background: rgba(0,0,0,0.4);
-    border: 1px solid rgba(0,229,255,0.15);
-    border-radius: 4px; padding: 6px 12px; flex: 1;
-  }
-  .task-label:focus { outline: none; border-color: var(--accent); }
+  /* Label display */
   .task-label-display {
     font-family: 'Exo 2', sans-serif;
     font-size: 1rem; font-weight: 600;
@@ -416,12 +405,9 @@
 <main>
   <!-- TIMER PANEL -->
   <div class="panel" id="timer-panel">
-    <div class="panel-label">REACTION TIMER</div>
+    <div class="panel-label">LIFE SUPPORT</div>
 
-    <div class="task-label-row">
-      <input class="task-label" id="taskInput" type="text" placeholder="Task / experiment label…" maxlength="60">
-    </div>
-    <div class="task-label-display" id="taskDisplay">—</div>
+    <div class="task-label-display">OXYGEN REMAINING</div>
 
     <div class="timer-presets">
       <button class="preset-btn" onclick="setPreset(1)">1 MIN</button>
@@ -587,9 +573,7 @@ function updateDisplay() {
     rd.classList.add('warning'); pf.classList.add('warning');
   }
 
-  // update label
-  const lbl = document.getElementById('taskInput').value.trim();
-  document.getElementById('taskDisplay').textContent = lbl || '—';
+
 }
 
 function startPause() {
