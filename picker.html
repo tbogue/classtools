@@ -26,8 +26,8 @@
     background: var(--bg);
     font-family: 'Exo 2', sans-serif;
     color: var(--text);
-    width: 100vw; height: 100dvh;
-    overflow: auto;
+    width: 100vw; height: 100vh;
+    overflow: hidden;
     display: flex; flex-direction: column;
   }
   canvas.bg-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
@@ -420,7 +420,7 @@
 
   <!-- WHEEL -->
   <div class="panel" id="wheel-panel">
-    <div class="panel-label">WHEEL OF DOOM!</div>
+    <div class="panel-label">ELEMENT SELECTOR WHEEL</div>
     <div class="wheel-wrapper">
       <div class="wheel-pointer"></div>
       <canvas id="wheelCanvas" width="380" height="380"></canvas>
@@ -712,6 +712,50 @@ function getWinnerFromAngle() {
   return students[idx];
 }
 
+// ── AUDIO ──
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playTick(speed) {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(600 + speed * 800, ctx.currentTime);
+    gain.gain.setValueAtTime(0.18 + speed * 0.18, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.06);
+  } catch(e) {}
+}
+
+function playWinChime() {
+  try {
+    const ctx = getAudioCtx();
+    const notes = [523.25, 659.25, 783.99, 1046.5];
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      const t = ctx.currentTime + i * 0.13;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.28, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+      osc.start(t);
+      osc.stop(t + 0.6);
+    });
+  } catch(e) {}
+}
+
 function spinWheel() {
   const students = activeStudents();
   if (students.length < 2) return;
@@ -726,13 +770,27 @@ function spinWheel() {
   const startAngle = wheelAngle;
   const targetAngle = startAngle + extraAngle;
 
+  const n = students.length;
+  const sliceAngle = (Math.PI * 2) / n;
+  let lastSliceIndex = Math.floor(((-(wheelAngle - Math.PI * 1.5)) % (Math.PI*2) + Math.PI*2) / sliceAngle);
+
   function animate(now) {
     const elapsed = now - start;
     const t = Math.min(elapsed / duration, 1);
-    // ease out cubic
     const ease = 1 - Math.pow(1 - t, 3);
     wheelAngle = startAngle + (targetAngle - startAngle) * ease;
     drawWheel();
+
+    // Speed peaks at t=0, fades to 0 at t=1 (derivative of ease-out cubic)
+    const speed = 3 * Math.pow(1 - t, 2);
+
+    // Tick on each slice boundary crossing
+    const currentSliceIndex = Math.floor(((-(wheelAngle - Math.PI * 1.5)) % (Math.PI*2) + Math.PI*2) / sliceAngle);
+    if (currentSliceIndex !== lastSliceIndex) {
+      playTick(speed);
+      lastSliceIndex = currentSliceIndex;
+    }
+
     if (t < 1) {
       requestAnimationFrame(animate);
     } else {
@@ -740,6 +798,7 @@ function spinWheel() {
       document.getElementById('spinBtn').disabled = false;
       const winner = getWinnerFromAngle();
       if (winner) {
+        playWinChime();
         document.getElementById('resultName').textContent = winner.name;
         document.getElementById('result-flash').classList.add('show');
         if (document.getElementById('removeAfterSpin').checked) {
