@@ -573,7 +573,12 @@ function updateDisplay() {
     rd.classList.add('warning'); pf.classList.add('warning');
   }
 
-
+  const label = document.querySelector('.task-label-display');
+  if (pct > 0.75) label.textContent = "SYSTEMS STABLE";
+  else if (pct > 0.50) label.textContent = "OXYGEN RESERVES DEPLETING";
+  else if (pct > 0.25) label.textContent = "CRITICAL FAILURE PROBABLE";
+  else if (pct > 0.10) label.textContent = "CRITICAL FAILURE IMMINENT";
+  else label.textContent = "GOODBYE, TEST SUBJECTS";
 }
 
 function startPause() {
