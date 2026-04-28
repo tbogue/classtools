@@ -85,7 +85,6 @@
     min-height: 0;
   }
 
-  @keyframes flicker { 0% { opacity: 0.98; } 5% { opacity: 0.95; } 10% { opacity: 0.99; } 100% { opacity: 1; } }
   .panel {
     background: linear-gradient(135deg, var(--panel), var(--panel2));
     border: var(--border);
@@ -94,7 +93,6 @@
     position: relative;
     overflow: hidden;
     display: flex; flex-direction: column;
-    animation: flicker 0.1s infinite;
   }
   .panel::before {
     content: '';
@@ -583,49 +581,6 @@ function updateDisplay() {
   else label.textContent = "GOODBYE, TEST SUBJECTS";
 }
 
-function playSteamVent() {
-  try {
-    const actx = new (window.AudioContext || window.webkitAudioContext)();
-
-    // White noise buffer (2 seconds)
-    const bufferSize = actx.sampleRate * 2;
-    const buffer = actx.createBuffer(1, bufferSize, actx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-
-    const noise = actx.createBufferSource();
-    noise.buffer = buffer;
-
-    // Bandpass filter — shapes noise into a hissy steam sound
-    const filter = actx.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(1200, actx.currentTime);
-    filter.frequency.linearRampToValueAtTime(400, actx.currentTime + 1.8);
-    filter.Q.value = 0.8;
-
-    // A second high-shelf filter for extra hiss
-    const hiShelf = actx.createBiquadFilter();
-    hiShelf.type = 'highshelf';
-    hiShelf.frequency.value = 3000;
-    hiShelf.gain.value = 10;
-
-    // Gain envelope: sharp attack, long decay — like a valve bursting then fading
-    const gain = actx.createGain();
-    gain.gain.setValueAtTime(0, actx.currentTime);
-    gain.gain.linearRampToValueAtTime(1.2, actx.currentTime + 0.04);  // hard burst
-    gain.gain.linearRampToValueAtTime(0.6, actx.currentTime + 0.15);  // settle
-    gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 1.8); // fade out
-
-    noise.connect(filter);
-    filter.connect(hiShelf);
-    hiShelf.connect(gain);
-    gain.connect(actx.destination);
-
-    noise.start(actx.currentTime);
-    noise.stop(actx.currentTime + 2);
-  } catch(e) {}
-}
-
 function startPause() {
   if (!timerRunning) {
     if (remaining === 0) { remaining = totalSeconds; }
@@ -639,7 +594,6 @@ function startPause() {
       } else {
         clearInterval(timerInterval);
         timerRunning = false;
-        playSteamVent();
         document.getElementById('done-overlay').classList.add('show');
         document.getElementById('startPauseBtn').textContent = 'START';
         document.getElementById('startPauseBtn').className = 'ctrl-btn start';
