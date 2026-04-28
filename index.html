@@ -85,7 +85,6 @@
     min-height: 0;
   }
 
-  @keyframes flicker { 0% { opacity: 0.98; } 5% { opacity: 0.95; } 10% { opacity: 0.99; } 100% { opacity: 1; } }
   .panel {
     background: linear-gradient(135deg, var(--panel), var(--panel2));
     border: var(--border);
@@ -94,7 +93,6 @@
     position: relative;
     overflow: hidden;
     display: flex; flex-direction: column;
-    animation: flicker 0.1s infinite;
   }
   .panel::before {
     content: '';
