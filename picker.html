@@ -787,6 +787,8 @@ function playWinChime() {
 // Click / tap the wheel to spin
 wheelCanvas.addEventListener('click', () => { if (!spinning) spinWheel(); });
 wheelCanvas.style.cursor = 'pointer';
+wheelCanvas.style.outline = 'none';
+wheelCanvas.setAttribute('tabindex', '-1');
 
 function spinWheel() {
   const students = activeStudents();
