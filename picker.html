@@ -873,6 +873,14 @@ function clearTeams() {
   `;
 }
 
+// Force on-screen keyboard on smartboard touch
+document.querySelectorAll('input').forEach(inp => {
+  inp.addEventListener('touchstart', (e) => {
+    e.stopPropagation();
+    setTimeout(() => inp.focus(), 50);
+  });
+});
+
 // ── RENDER ALL ──
 function renderWheel() { drawWheel(); }
 

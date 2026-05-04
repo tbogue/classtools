@@ -460,6 +460,14 @@
 </div>
 
 <script>
+// Force on-screen keyboard on smartboard touch
+document.querySelectorAll('input').forEach(inp => {
+  inp.addEventListener('touchstart', (e) => {
+    e.stopPropagation();
+    setTimeout(() => inp.focus(), 50);
+  });
+});
+
 // ── LIVE CLOCK ──
 function updateClock() {
   const now = new Date();
