@@ -749,26 +749,10 @@ function playTick(speed) {
 }
 
 function playWinChime() {
-  // Dramatic "experiment complete" — descending synth tone + noise burst like a lab instrument
+  // Two confirmatory beeps — like a readout locking in
   try {
     const ctx = getAudioCtx();
-
-    // Buzzing oscillator sweep (like an alarm settling)
-    const osc = ctx.createOscillator();
-    const oscGain = ctx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(880, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 0.6);
-    oscGain.gain.setValueAtTime(0.0, ctx.currentTime);
-    oscGain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.02);
-    oscGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.7);
-    osc.connect(oscGain);
-    oscGain.connect(ctx.destination);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.7);
-
-    // Two confirmatory beeps after — like a readout locking in
-    [0.75, 0.95].forEach((delay, i) => {
+    [0, 0.2].forEach((delay, i) => {
       const b = ctx.createOscillator();
       const bg = ctx.createGain();
       b.type = 'square';
