@@ -317,6 +317,20 @@
     border-radius: 3px; padding: 5px 8px; width: 52px; text-align: center;
   }
   .size-input:focus { outline: none; border-color: var(--accent2); }
+  .mode-toggle-btn {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.58rem; letter-spacing: 0.1em;
+    padding: 5px 10px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(0,229,255,0.2);
+    color: var(--dim); border-radius: 3px; cursor: pointer;
+    transition: all 0.15s; touch-action: manipulation; white-space: nowrap;
+  }
+  .mode-toggle-btn.active {
+    background: rgba(0,229,255,0.12);
+    border-color: var(--accent); color: var(--accent);
+    box-shadow: var(--glow);
+  }
   .gen-btn {
     font-family: 'Orbitron', monospace;
     font-size: 0.6rem; letter-spacing: 0.1em;
@@ -447,7 +461,9 @@
   <div class="panel" id="teams-panel">
     <div class="panel-label">SPECIMEN GROUPS</div>
     <div class="teams-controls">
-      <span class="teams-label">SIZE PER TEAM:</span>
+      <button class="mode-toggle-btn active" id="modeSizeBtn" onclick="setTeamMode('size')">BY SIZE</button>
+      <button class="mode-toggle-btn" id="modeCountBtn" onclick="setTeamMode('count')">BY COUNT</button>
+      <span class="teams-label" id="teamModeLabel">STUDENTS PER TEAM:</span>
       <input class="size-input" type="number" id="teamSize" value="3" min="2" max="10">
       <button class="gen-btn" onclick="generateTeams()">⚗ GENERATE</button>
       <button class="gen-btn" onclick="clearTeams()" style="border-color:var(--accent3);color:var(--accent3);background:rgba(255,107,53,0.08)">CLEAR</button>
@@ -837,14 +853,39 @@ function spinWheel() {
 }
 
 // ── TEAMS ──
+let teamMode = 'size'; // 'size' or 'count'
+
+function setTeamMode(mode) {
+  teamMode = mode;
+  document.getElementById('modeSizeBtn').classList.toggle('active', mode === 'size');
+  document.getElementById('modeCountBtn').classList.toggle('active', mode === 'count');
+  const label = document.getElementById('teamModeLabel');
+  const input = document.getElementById('teamSize');
+  if (mode === 'size') {
+    label.textContent = 'STUDENTS PER TEAM:';
+    input.min = 2; input.max = 10; input.value = 3;
+  } else {
+    label.textContent = 'NUMBER OF TEAMS:';
+    input.min = 2; input.max = 20; input.value = 4;
+  }
+}
+
 function generateTeams() {
   const students = activeStudents();
   if (students.length < 2) { alert('Need at least 2 students!'); return; }
-  const size = parseInt(document.getElementById('teamSize').value) || 3;
+  const val = parseInt(document.getElementById('teamSize').value) || (teamMode === 'size' ? 3 : 4);
   const shuffled = [...students].sort(() => Math.random() - 0.5);
   const teams = [];
-  for (let i = 0; i < shuffled.length; i += size) {
-    teams.push(shuffled.slice(i, i + size));
+
+  if (teamMode === 'size') {
+    for (let i = 0; i < shuffled.length; i += val) {
+      teams.push(shuffled.slice(i, i + val));
+    }
+  } else {
+    // Distribute evenly across N teams
+    const numTeams = Math.min(val, shuffled.length);
+    for (let i = 0; i < numTeams; i++) teams.push([]);
+    shuffled.forEach((s, i) => teams[i % numTeams].push(s));
   }
   const teamColors = ['#00e5ff','#39ff14','#b06aff','#ff6b35','#ffcc00','#00ff88','#ff4488','#44aaff'];
   const elements = ['Hydrogen','Helium','Lithium','Beryllium','Boron','Carbon','Nitrogen','Oxygen','Fluorine','Neon'];
