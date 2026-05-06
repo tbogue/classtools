@@ -889,6 +889,13 @@ function generateTeams() {
   }
   const teamColors = ['#00e5ff','#39ff14','#b06aff','#ff6b35','#ffcc00','#00ff88','#ff4488','#44aaff'];
   const elements = ['Hydrogen','Helium','Lithium','Beryllium','Boron','Carbon','Nitrogen','Oxygen','Fluorine','Neon'];
+  localStorage.setItem('lab_teams', JSON.stringify(teams));
+  renderTeams(teams);
+}
+
+function renderTeams(teams) {
+  const teamColors = ['#00e5ff','#39ff14','#b06aff','#ff6b35','#ffcc00','#00ff88','#ff4488','#44aaff'];
+  const elements = ['Hydrogen','Helium','Lithium','Beryllium','Boron','Carbon','Nitrogen','Oxygen','Fluorine','Neon'];
   const out = document.getElementById('teamsOutput');
   out.innerHTML = '';
   teams.forEach((team, i) => {
@@ -909,6 +916,7 @@ function generateTeams() {
 }
 
 function clearTeams() {
+  localStorage.removeItem('lab_teams');
   document.getElementById('teamsOutput').innerHTML = `
     <div class="teams-empty"><div class="icon">⚗️</div><p>GENERATE TEAMS ABOVE</p></div>
   `;
