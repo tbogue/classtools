@@ -930,6 +930,7 @@ document.querySelectorAll('input').forEach(inp => {
   });
 });
 
+
 // ── RENDER ALL ──
 function renderWheel() { drawWheel(); }
 
@@ -937,6 +938,17 @@ function renderAll() {
   renderTabs();
   renderStudents();
   drawWheel();
+
+  // Restore saved teams on load
+  try {
+    const saved = localStorage.getItem('lab_teams');
+    if (saved) {
+      const teams = JSON.parse(saved);
+      if (Array.isArray(teams) && teams.length > 0) {
+        renderTeams(teams);
+      }
+    }
+  } catch(e) {}
 }
 
 renderAll();
