@@ -342,6 +342,25 @@
   }
   .gen-btn:hover { background: rgba(57,255,20,0.22); box-shadow: var(--glow2); }
 
+  .role-badge {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.55rem; letter-spacing: 0.08em;
+    padding: 2px 6px; border-radius: 3px;
+    margin-right: 6px; flex-shrink: 0;
+    display: inline-block;
+  }
+  .role-manager   { background: rgba(0,229,255,0.15);  border: 1px solid rgba(0,229,255,0.5);  color: #00e5ff; }
+  .role-recorder  { background: rgba(57,255,20,0.12);  border: 1px solid rgba(57,255,20,0.5);  color: #39ff14; }
+  .role-presenter { background: rgba(176,106,255,0.15);border: 1px solid rgba(176,106,255,0.5);color: #b06aff; }
+  .role-reflector { background: rgba(255,204,0,0.12);  border: 1px solid rgba(255,204,0,0.5);  color: #ffcc00; }
+  .pogil-member {
+    font-size: 0.8rem; color: var(--text);
+    padding: 3px 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.04);
+    display: flex; align-items: center;
+  }
+
   .teams-output {
     flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;
   }
@@ -466,6 +485,7 @@
       <span class="teams-label" id="teamModeLabel">STUDENTS PER TEAM:</span>
       <input class="size-input" type="number" id="teamSize" value="3" min="2" max="10">
       <button class="gen-btn" onclick="generateTeams()">⚗ GENERATE</button>
+      <button class="gen-btn" onclick="generatePOGIL()" style="border-color:var(--purple);color:var(--purple);background:rgba(176,106,255,0.08)">⬡ POGIL</button>
       <button class="gen-btn" onclick="clearTeams()" style="border-color:var(--accent3);color:var(--accent3);background:rgba(255,107,53,0.08)">CLEAR</button>
     </div>
     <div class="teams-output" id="teamsOutput">
@@ -544,6 +564,7 @@ function renderTabs() {
     btn.className = 'class-tab' + (name === appData.active ? ' active' : '');
     btn.textContent = name;
     btn.onclick = () => { appData.active = name; saveData(); renderAll(); };
+    // long-press to delete
     let hold;
     btn.addEventListener('touchstart', () => { hold = setTimeout(()=>deleteClass(name),800); });
     btn.addEventListener('touchend', () => clearTimeout(hold));
@@ -603,7 +624,7 @@ function renderStudents() {
   const list = document.getElementById('studentList');
   if (!c) { list.innerHTML = '<div class="no-students">NO CLASS SELECTED</div>'; return; }
   if (c.students.length === 0) {
-    list.innerHTML = '<div class="no-students">ADD STUDENTS ABOVE</div>';
+    list.innerHTML = '<div class="no-students">ADD STUDENTS ABOVE</div>'; 
     document.getElementById('statsText').textContent = '';
     document.getElementById('restoreBtn').style.display = 'none';
     return;
@@ -648,6 +669,7 @@ function drawWheel() {
   wctx.clearRect(0,0,W,H);
 
   if (students.length === 0) {
+    // empty state
     wctx.beginPath();
     wctx.arc(cx,cy,r,0,Math.PI*2);
     wctx.fillStyle = '#0a1520';
@@ -669,6 +691,7 @@ function drawWheel() {
     const endAngle = startAngle + arc;
     const [light, dark] = WHEEL_COLORS[i % WHEEL_COLORS.length];
 
+    // gradient slice
     const grad = wctx.createRadialGradient(cx, cy, 0, cx, cy, r);
     grad.addColorStop(0, dark + 'aa');
     grad.addColorStop(1, light + '55');
@@ -682,6 +705,7 @@ function drawWheel() {
     wctx.strokeStyle = '#050a0f';
     wctx.lineWidth = 2; wctx.stroke();
 
+    // text
     const midAngle = startAngle + arc / 2;
     const textR = r * 0.65;
     const tx = cx + Math.cos(midAngle) * textR;
@@ -695,11 +719,13 @@ function drawWheel() {
     wctx.font = `600 ${fs}px Exo 2, sans-serif`;
     wctx.textAlign = 'center';
     wctx.textBaseline = 'middle';
+    // truncate
     let label = s.name;
     wctx.fillText(label.length > 10 ? label.slice(0,9)+'…' : label, 0, 0);
     wctx.restore();
   });
 
+  // center circle
   wctx.beginPath();
   wctx.arc(cx, cy, 22, 0, Math.PI*2);
   wctx.fillStyle = '#050a0f';
@@ -707,6 +733,7 @@ function drawWheel() {
   wctx.strokeStyle = 'rgba(0,229,255,0.5)';
   wctx.lineWidth = 2; wctx.stroke();
 
+  // center icon
   wctx.fillStyle = 'rgba(0,229,255,0.7)';
   wctx.font = '13px serif';
   wctx.textAlign = 'center';
@@ -719,6 +746,7 @@ function getWinnerFromAngle() {
   const n = students.length;
   if (n === 0) return null;
   const arc = (Math.PI * 2) / n;
+  // pointer is at top (π*1.5 = -π/2), find which slice is there
   let angle = (-(wheelAngle - Math.PI * 1.5)) % (Math.PI * 2);
   if (angle < 0) angle += Math.PI * 2;
   const idx = Math.floor(angle / arc) % n;
@@ -733,6 +761,7 @@ function getAudioCtx() {
 }
 
 function playTick(speed) {
+  // Geiger counter-style click — sharp noise burst, pitch rises with speed
   try {
     const ctx = getAudioCtx();
     const bufSize = ctx.sampleRate * 0.04;
@@ -761,6 +790,7 @@ function playTick(speed) {
 }
 
 function playWinChime() {
+  // Two confirmatory beeps — like a readout locking in
   try {
     const ctx = getAudioCtx();
     [0, 0.2].forEach((delay, i) => {
@@ -810,8 +840,10 @@ function spinWheel() {
     wheelAngle = startAngle + (targetAngle - startAngle) * ease;
     drawWheel();
 
+    // Speed peaks at t=0, fades to 0 at t=1 (derivative of ease-out cubic)
     const speed = 3 * Math.pow(1 - t, 2);
 
+    // Tick on each slice boundary crossing
     const currentSliceIndex = Math.floor(((-(wheelAngle - Math.PI * 1.5)) % (Math.PI*2) + Math.PI*2) / sliceAngle);
     if (currentSliceIndex !== lastSliceIndex) {
       playTick(speed);
@@ -841,7 +873,7 @@ function spinWheel() {
 }
 
 // ── TEAMS ──
-let teamMode = 'size';
+let teamMode = 'size'; // 'size' or 'count'
 
 function setTeamMode(mode) {
   teamMode = mode;
@@ -870,11 +902,13 @@ function generateTeams() {
       teams.push(shuffled.slice(i, i + val));
     }
   } else {
+    // Distribute evenly across N teams
     const numTeams = Math.min(val, shuffled.length);
     for (let i = 0; i < numTeams; i++) teams.push([]);
     shuffled.forEach((s, i) => teams[i % numTeams].push(s));
   }
-
+  const teamColors = ['#00e5ff','#39ff14','#b06aff','#ff6b35','#ffcc00','#00ff88','#ff4488','#44aaff'];
+  const elements = ['Hydrogen','Helium','Lithium','Beryllium','Boron','Carbon','Nitrogen','Oxygen','Fluorine','Neon'];
   localStorage.setItem('lab_teams', JSON.stringify(teams));
   renderTeams(teams);
 }
@@ -908,6 +942,63 @@ function clearTeams() {
   `;
 }
 
+function generatePOGIL() {
+  const students = activeStudents();
+  if (students.length < 2) { alert('Need at least 2 students!'); return; }
+
+  const ROLES = [
+    { name: 'Manager',   cls: 'role-manager' },
+    { name: 'Recorder',  cls: 'role-recorder' },
+    { name: 'Presenter', cls: 'role-presenter' },
+    { name: 'Reflector', cls: 'role-reflector' },
+  ];
+
+  // Shuffle students
+  const shuffled = [...students].sort(() => Math.random() - 0.5);
+
+  // Split into groups of 4 (last group may be smaller)
+  const groups = [];
+  for (let i = 0; i < shuffled.length; i += 4) {
+    groups.push(shuffled.slice(i, i + 4));
+  }
+
+  // Assign roles within each group
+  const pogilGroups = groups.map(group =>
+    group.map((student, i) => ({ student, role: ROLES[i % ROLES.length] }))
+  );
+
+  // Save to localStorage (store as flat team arrays with role info)
+  localStorage.setItem('lab_teams', JSON.stringify(pogilGroups.map(g => g.map(m => ({
+    name: m.student.name, role: m.role.name
+  })))));
+
+  // Render
+  const teamColors = ['#00e5ff','#39ff14','#b06aff','#ff6b35','#ffcc00','#00ff88','#ff4488','#44aaff'];
+  const elements = ['Hydrogen','Helium','Lithium','Beryllium','Boron','Carbon','Nitrogen','Oxygen','Fluorine','Neon'];
+  const out = document.getElementById('teamsOutput');
+  out.innerHTML = '';
+
+  pogilGroups.forEach((group, i) => {
+    const color = teamColors[i % teamColors.length];
+    const el = elements[i] || `Group ${i+1}`;
+    const div = document.createElement('div');
+    div.className = 'team-card';
+    div.style.borderLeftColor = color;
+    div.style.animationDelay = (i * 0.07) + 's';
+    div.innerHTML = `
+      <div class="team-card-header" style="color:${color}">⬡ ${el.toUpperCase()} CELL</div>
+      <div class="team-members">
+        ${group.map(m => `
+          <div class="pogil-member">
+            <span class="role-badge ${m.role.cls}">${m.role.name.toUpperCase()}</span>
+            ${m.student.name}
+          </div>`).join('')}
+      </div>
+    `;
+    out.appendChild(div);
+  });
+}
+
 // Force on-screen keyboard on smartboard touch
 document.querySelectorAll('input').forEach(inp => {
   inp.addEventListener('touchstart', (e) => {
@@ -928,11 +1019,37 @@ function renderAll() {
 function restoreTeams() {
   try {
     const saved = localStorage.getItem('lab_teams');
-    if (saved) {
-      const teams = JSON.parse(saved);
-      if (Array.isArray(teams) && teams.length > 0) {
-        renderTeams(teams);
-      }
+    if (!saved) return;
+    const teams = JSON.parse(saved);
+    if (!Array.isArray(teams) || teams.length === 0) return;
+
+    // Detect POGIL format: members have a 'role' property
+    if (teams[0][0] && teams[0][0].role) {
+      const ROLE_CLS = { Manager:'role-manager', Recorder:'role-recorder', Presenter:'role-presenter', Reflector:'role-reflector' };
+      const teamColors = ['#00e5ff','#39ff14','#b06aff','#ff6b35','#ffcc00','#00ff88','#ff4488','#44aaff'];
+      const elements = ['Hydrogen','Helium','Lithium','Beryllium','Boron','Carbon','Nitrogen','Oxygen','Fluorine','Neon'];
+      const out = document.getElementById('teamsOutput');
+      out.innerHTML = '';
+      teams.forEach((group, i) => {
+        const color = teamColors[i % teamColors.length];
+        const el = elements[i] || `Group ${i+1}`;
+        const div = document.createElement('div');
+        div.className = 'team-card';
+        div.style.borderLeftColor = color;
+        div.innerHTML = `
+          <div class="team-card-header" style="color:${color}">⬡ ${el.toUpperCase()} CELL</div>
+          <div class="team-members">
+            ${group.map(m => `
+              <div class="pogil-member">
+                <span class="role-badge ${ROLE_CLS[m.role] || ''}">${m.role.toUpperCase()}</span>
+                ${m.name}
+              </div>`).join('')}
+          </div>
+        `;
+        out.appendChild(div);
+      });
+    } else {
+      renderTeams(teams);
     }
   } catch(e) {}
 }
