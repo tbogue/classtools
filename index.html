@@ -80,9 +80,15 @@
     position: relative; z-index: 10;
     flex: 1; display: grid;
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr auto;
+    grid-template-rows: 1fr;
     gap: 18px; padding: 18px;
     min-height: 0;
+  }
+
+  /* Right column wraps bulletin + countdown */
+  #right-column {
+    display: flex; flex-direction: column;
+    gap: 18px; min-height: 0;
   }
 
   .panel {
@@ -116,10 +122,11 @@
   @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
 
   /* ── TIMER PANEL ── */
-  #timer-panel { grid-column: 1; grid-row: 1 / 3; }
+  #timer-panel { grid-column: 1; }
 
-  /* ── COUNTDOWN PANEL ── */
-  #countdown-panel { grid-column: 2; grid-row: 2; }
+  /* ── RIGHT COLUMN PANELS ── */
+  #announce-panel { flex: 1; min-height: 0; }
+  #countdown-panel { flex-shrink: 0; }
 
   .countdown-setup {
     display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;
@@ -503,35 +510,37 @@
     </div>
   </div>
 
-  <!-- ANNOUNCEMENTS PANEL -->
-  <div class="panel" id="announce-panel">
-    <div class="panel-label">BULLETIN BOARD</div>
+  <div id="right-column">
+    <!-- ANNOUNCEMENTS PANEL -->
+    <div class="panel" id="announce-panel">
+      <div class="panel-label">BULLETIN BOARD</div>
 
-    <div class="announce-input-row">
-      <input class="announce-input" id="announceInput" type="text" placeholder="Enter announcement…" maxlength="120"
-        onkeydown="if(event.key==='Enter') addAnnouncement()">
-      <button class="add-announce-btn" onclick="addAnnouncement()">+ POST</button>
+      <div class="announce-input-row">
+        <input class="announce-input" id="announceInput" type="text" placeholder="Enter announcement…" maxlength="120"
+          onkeydown="if(event.key==='Enter') addAnnouncement()">
+        <button class="add-announce-btn" onclick="addAnnouncement()">+ POST</button>
+      </div>
+
+      <div class="announcements-list" id="announcementsList"></div>
     </div>
 
-    <div class="announcements-list" id="announcementsList"></div>
-  </div>
-
-  <!-- COUNTDOWN PANEL -->
-  <div class="panel" id="countdown-panel">
-    <div class="panel-label">MISSION COUNTDOWN</div>
-    <div class="countdown-setup">
-      <input class="countdown-msg-input" id="countdownMsg" type="text" placeholder="Event label…" maxlength="60">
-      <input class="countdown-date-input" id="countdownDate" type="datetime-local">
-      <button class="countdown-set-btn" onclick="setCountdown()">SET</button>
-    </div>
-    <div class="countdown-display" id="countdownDisplay">
-      <div class="countdown-message" id="countdownLabel">—</div>
-      <div class="countdown-digits" id="countdownDigits">00:00:00:00</div>
-      <div class="countdown-units">
-        <span class="countdown-unit">DAYS</span>
-        <span class="countdown-unit">HRS</span>
-        <span class="countdown-unit">MIN</span>
-        <span class="countdown-unit">SEC</span>
+    <!-- COUNTDOWN PANEL -->
+    <div class="panel" id="countdown-panel">
+      <div class="panel-label">MISSION COUNTDOWN</div>
+      <div class="countdown-setup">
+        <input class="countdown-msg-input" id="countdownMsg" type="text" placeholder="Event label…" maxlength="60">
+        <input class="countdown-date-input" id="countdownDate" type="datetime-local">
+        <button class="countdown-set-btn" onclick="setCountdown()">SET</button>
+      </div>
+      <div class="countdown-display" id="countdownDisplay">
+        <div class="countdown-message" id="countdownLabel">—</div>
+        <div class="countdown-digits" id="countdownDigits">00:00:00:00</div>
+        <div class="countdown-units">
+          <span class="countdown-unit">DAYS</span>
+          <span class="countdown-unit">HRS</span>
+          <span class="countdown-unit">MIN</span>
+          <span class="countdown-unit">SEC</span>
+        </div>
       </div>
     </div>
   </div>
