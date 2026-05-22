@@ -580,6 +580,7 @@
         <input class="countdown-msg-input" id="countdownMsg" type="text" placeholder="Event label…" maxlength="60">
         <input class="countdown-date-input" id="countdownDate" type="datetime-local">
         <button class="countdown-set-btn" onclick="setCountdown()">SET</button>
+      <button class="countdown-set-btn" onclick="clearCountdown()" style="border-color:var(--accent3);color:var(--accent3);background:rgba(255,107,53,0.08);">CLEAR</button>
       </div>
       <div class="countdown-display" id="countdownDisplay">
         <div class="countdown-message" id="countdownLabel">—</div>
@@ -877,6 +878,18 @@ function setCountdown() {
   document.getElementById('countdownLabel').textContent = label;
   localStorage.setItem('lab_countdown', JSON.stringify({ target: countdownTarget, label }));
   startCountdownTick();
+}
+
+function clearCountdown() {
+  if (countdownInterval) clearInterval(countdownInterval);
+  countdownTarget = null;
+  countdownInterval = null;
+  localStorage.removeItem('lab_countdown');
+  document.getElementById('countdownLabel').textContent = '—';
+  document.getElementById('countdownDigits').textContent = '00:00:00:00';
+  document.getElementById('countdownDigits').classList.remove('done');
+  document.getElementById('countdownMsg').value = '';
+  document.getElementById('countdownDate').value = '';
 }
 
 function startCountdownTick() {
